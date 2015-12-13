@@ -47,7 +47,7 @@ public class AnalisadorLexico {
                     while((symbol = input.read()) != '"' && symbol != '\n' && symbol != -1){
                         token = token + (char) symbol;
                         if(symbol > 126 || symbol < 32) {
-                            System.out.println("Erro: Cadeia mal formada (Símbolo Ínvalido)");
+                            System.out.println("Erro: Cadeia constante mal formada (Símbolo Ínvalido)");
                             accept = false;
                             err_count ++;
                         }
@@ -55,13 +55,44 @@ public class AnalisadorLexico {
                     
                      if(symbol=='"'){
                         token = token + (char) symbol;
-                        if(accept == true)
-                        System.out.println(token);
                     } else { //if(symbol == -1 || symbol == '\n')
-                        System.out.println("Erro: Cadeia constante não terminada");
+                        System.out.println("Erro: Cadeia constante terminada incorretamente");
                         err_count ++;
+                        accept = false;
                     } 
-                        
+                     
+                     if(accept == true)
+                        System.out.println(token);
+                     
+                    break;
+                
+                case '\'':
+                    symbol = input.read();
+                    if ((symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)) {
+                        token = token + (char) symbol;
+                    } else if (symbol == -1 || symbol == '\n'){
+                        System.out.println("Erro: Caractere constante terminado incorretamente");
+                        err_count ++;
+                        accept = false;
+                    } else {
+                        System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
+                        err_count ++;
+                        accept = false;
+                    }
+                    
+                    symbol = input.read();
+                    
+                    if(symbol == '\'')
+                        token = token + (char)symbol;
+                    else{
+                        System.out.println("Erro: Caractere constante terminado incorretamente");
+                        err_count ++;
+                        accept = false;
+                    }
+                    
+                    if(accept == true)
+                        System.out.println(token);
+                    
                     break;
                 
                 case -1:
