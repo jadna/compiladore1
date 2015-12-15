@@ -6,8 +6,10 @@
 package analisadorlexico;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -18,7 +20,8 @@ import java.util.Arrays;
 public class AnalisadorLexico {
 
     
-        private BufferedReader input; 
+        private BufferedReader input;
+        private BufferedWriter output;
         private int symbol = 0; 
         private boolean eof = false;
         private int err_count = 0;
@@ -32,8 +35,9 @@ public class AnalisadorLexico {
                                               "new", "read", "return", "string", 
                                               "true", "void", "while", "write" };
     
-    public AnalisadorLexico() throws FileNotFoundException{
+    public AnalisadorLexico() throws FileNotFoundException, IOException{
         input = new BufferedReader(new FileReader("input.txt"));
+        output = new BufferedWriter(new FileWriter("output.txt"));;
         symbol = 0; 
         eof = false;
         err_count = 0;
@@ -57,9 +61,10 @@ public class AnalisadorLexico {
     public void Automato() throws IOException{
          while (!eof) {
             token = "";
-            accept = true;
             
-            symbol = input.read();
+            if(symbol != -1) // o fim do arquivo pode ser alcançado no loop anterior. O valor inicial de symbol é zero
+                symbol = input.read();
+            
             pos [1]++;
             
             if(symbol != '\n' && symbol != -1)
@@ -77,15 +82,23 @@ public class AnalisadorLexico {
                     
                     }
                     
+                    
                     else if(Character.isLetter(symbol)){
                         System.out.println((char)symbol);
                         
                     }
                 
-                
+                    
                     else if(symbol == -1){
-                    System.out.println("Numero de erros: "+err_count);
-                    eof = true;
+                        System.out.println("Numero de erros: "+err_count);
+                        eof = true;
+                        
+                    }
+                    
+                    
+                    else if(symbol == '/'){
+                        Comentario();
+                        
                     }
 
                 
@@ -101,8 +114,9 @@ public class AnalisadorLexico {
         
          while(true){
              symbol = input.read();
+             //System.out.println((char)symbol);
              
-             if((symbol == '"') || Character.isLetterOrDigit(symbol) || (symbol <= 126 && symbol >= 32)){
+             if((symbol == '"') || (Character.isLetterOrDigit(symbol) && (symbol <= 126 && symbol >= 32))){
                  token = token + (char) symbol;
                  
                  if(symbol == '"'){
@@ -110,12 +124,12 @@ public class AnalisadorLexico {
                    aux = FindEndCC();
                    
                    if(aux == 0){
-                       System.out.println(token);
+                       if(accept)
+                            System.out.println(token);
                    }
                    else{
                        
                        System.out.println("Erro: Cadeia constante terminada incorretamente");
-                       accept = false;
                        err_count ++;
                    }
                    
@@ -123,27 +137,22 @@ public class AnalisadorLexico {
                  }
              } 
              
-             else if(symbol > 126 || symbol < 32){
-                 
-                System.out.println("Erro: Cadeia constante mal formada (Símbolo Ínvalido)");
-                //accept = false;
-                err_count ++;
-                FindEndCC();
-                break;
-                
-                 
-             }
-             
              else if (symbol == '\n' || symbol == -1){
                  
                 System.out.println("Erro: Cadeia constante terminada incorretamente");
-                //accept = false;
                 err_count ++;
                 break;
                  
-             } 
-             //else
-                 //token = token + (char) symbol;
+             }
+             
+             else if( (symbol > 126) || (symbol < 32) ){
+                 
+                System.out.println("Erro: Cadeia constante mal formada (Símbolo Ínvalido)");
+                err_count ++;
+                accept = false;
+                
+                 
+             }
              
          }
          
@@ -194,82 +203,67 @@ public class AnalisadorLexico {
         return trash;
     }
     
-    
-     public void CaractereConst() throws IOException{
+    public void CaractereConst() throws IOException{
         symbol = input.read(); // (symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)
                     if (Character.isLetterOrDigit(symbol)) {
                         token = token + (char) symbol;
+                        
+                        symbol = input.read();
+                    
+                        if(symbol == '\''){
+                            token = token + (char)symbol;
+                            int aux = FindEndCC();
+                            
+                            if(aux==0)
+                                System.out.println(token);
+                            else{
+                                System.out.println("Erro: Caractere constante terminado incorretamente");
+                                err_count ++;
+                            }
+                            
+                        }
+                        else{
+                            System.out.println("Erro: Caractere constante terminado incorretamente");
+                            err_count ++;
+                        }
+                        
                     } else if (symbol == -1 || symbol == '\n'){
                         System.out.println("Erro: Caractere constante terminado incorretamente");
                         err_count ++;
-                        accept = false;
+                    } else if(symbol == '\'') {
+                        System.out.println("Erro: Caractere constate vazio");
+                        err_count ++;
+                        
                     } else {
                         System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
                         err_count ++;
-                        accept = false;
+                        FindEndCC();
                     }
                     
-                    symbol = input.read();
-                    
-                    if(symbol == '\'')
-                        token = token + (char)symbol;
-                    else{
-                        System.out.println("Erro: Caractere constante terminado incorretamente");
-                        err_count ++;
-                        accept = false;
-                    }
-                    
-                    if(accept == true)
-                        System.out.println(token);
     } 
     
-      /*public void CadeiaConst() throws IOException{
-        
-         while((symbol = input.read()) != '"' && symbol != '\n' && symbol != -1){
-                        token = token + (char) symbol;
-                        if(symbol > 126 || symbol < 32) {
-                            System.out.println("Erro: Cadeia constante mal formada (Símbolo Ínvalido)");
-                            accept = false;
-                            err_count ++;
-                        }
-                    }
-                    
-                     if(symbol=='"'){
-                        input.mark(5);
-                        token = token + (char) symbol;
-                        symbol = input.read();
+    public void Comentario() throws IOException{
+        symbol = input.read();
                         
-                        
-                        if(ArrayContains(symbol, Op)){
-                            int aux = input.read();
-                            if( ( (symbol == '!') && (aux != '=') ) || ( (symbol=='&') && (aux != '&') ) || 
-                                    (symbol=='|') && (aux != '|') ){
-                                System.out.println("Erro: Cadeia constante mal formada");
-                                accept = false;
-                                err_count ++;
-                                while((symbol = input.read() != ''))
-                            }
-                                
-                        } 
-                        else if ( !((ArrayContains(symbol, Dl)) || symbol=='\n' || Character.isWhitespace(symbol)) ){
-                            System.out.println("Erro: Cadeia constante mal formada");
-                            accept = false;
-                            err_count ++;
-                            
-                        }
-                        
-                        input.reset();
-                        
-                    } else { //if(symbol == -1 || symbol == '\n')
-                        System.out.println("Erro: Cadeia constante terminada incorretamente");
-                        err_count ++;
-                        accept = false;
-                    } 
-                     
-                     if(accept == true)
-                        System.out.println(token);
-        
-    } */
-    
+        if(symbol == '/'){
+            String temp = input.readLine();
+            if(temp == null){
+                symbol = -1;
+            }
+        }
+        else if(symbol == '*'){
+            boolean endCom = false;
+            symbol = input.read();
+            int aux;
+            while (!endCom && symbol != -1){
+                aux = symbol;
+                symbol = input.read();
+                if( (aux == '*') && (symbol == '/') ){
+                    endCom = true;
+                }
+            }
+        }
+    }  
+     
     
 }
