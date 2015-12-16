@@ -80,11 +80,11 @@ public class AnalisadorLexico {
                     else if(symbol == '\''){
                         CaractereConst();
                     
-                    }
+                    }   
                     
                     
                     else if(Character.isLetter(symbol)){
-                        System.out.println((char)symbol);
+                        //System.out.println((char)symbol);
                         
                     }
                 
@@ -96,7 +96,7 @@ public class AnalisadorLexico {
                     }
                     
                     
-                    else if(symbol == '/'){
+                    else if(symbol == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
                         Comentario();
                         
                     }
@@ -159,6 +159,79 @@ public class AnalisadorLexico {
         
     }
     
+    public void CaractereConst() throws IOException{
+        symbol = input.read(); // (symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)
+                    if (Character.isLetterOrDigit(symbol)) {
+                        token = token + (char) symbol;
+                        
+                        symbol = input.read();
+                    
+                        if(symbol == '\''){
+                            token = token + (char)symbol;
+                            int aux = FindEndCC();
+                            
+                            if(aux==0)
+                                System.out.println(token);
+                            else{
+                                System.out.println("Erro: Caractere constante terminado incorretamente (Expecting ; em java)");
+                                err_count ++;
+                            }
+                            
+                        }
+                        else{
+                            System.out.println("Erro: Caractere constante terminado incorretamente");
+                            
+                            String temp = input.readLine();
+                                if(temp == null){
+                                    symbol = -1;
+                                }
+                                
+                            err_count ++;
+                        }
+                        
+                    } else if (symbol == -1 || symbol == '\n'){
+                        System.out.println("Erro: Caractere constante terminado incorretamente");
+                        err_count ++;
+                    } else if(symbol == '\'') {
+                        System.out.println("Erro: Caractere constate vazio");
+                        err_count ++;
+                        
+                    } else {
+                        System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
+                        err_count ++;
+                        FindEndCC();
+                    }
+                    
+    } 
+    
+    public void Comentario() throws IOException{
+        symbol = input.read();
+                      
+        if(symbol == '/'){
+            String temp = input.readLine();
+            if(temp == null){
+                symbol = -1;
+            }
+            else
+                System.out.println("//"+temp);
+        }
+        else if(symbol == '*'){
+            boolean endCom = false;
+            symbol = input.read();
+            int aux;
+            System.out.print("/*");
+            while (!endCom && symbol != -1){
+                aux = symbol;
+                symbol = input.read();
+                if( (aux == '*') && (symbol == '/') ){
+                    endCom = true;
+                }
+                System.out.print((char)symbol);
+            }
+            System.out.println("");
+        }
+    }  
+    
     public boolean ArrayContains(int valor, int [] array) {
         for (int i = 0; i < array.length; i++) {
             if (valor == array[i]) {
@@ -175,8 +248,10 @@ public class AnalisadorLexico {
         int trash = 0;
         
         while(!end){
-            symbol = input.read();
             input.mark(100);
+            symbol = input.read();
+            
+            
 
             if(ArrayContains(symbol, Op)){
                 int aux = input.read();
@@ -202,68 +277,5 @@ public class AnalisadorLexico {
         
         return trash;
     }
-    
-    public void CaractereConst() throws IOException{
-        symbol = input.read(); // (symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)
-                    if (Character.isLetterOrDigit(symbol)) {
-                        token = token + (char) symbol;
-                        
-                        symbol = input.read();
-                    
-                        if(symbol == '\''){
-                            token = token + (char)symbol;
-                            int aux = FindEndCC();
-                            
-                            if(aux==0)
-                                System.out.println(token);
-                            else{
-                                System.out.println("Erro: Caractere constante terminado incorretamente");
-                                err_count ++;
-                            }
-                            
-                        }
-                        else{
-                            System.out.println("Erro: Caractere constante terminado incorretamente");
-                            err_count ++;
-                        }
-                        
-                    } else if (symbol == -1 || symbol == '\n'){
-                        System.out.println("Erro: Caractere constante terminado incorretamente");
-                        err_count ++;
-                    } else if(symbol == '\'') {
-                        System.out.println("Erro: Caractere constate vazio");
-                        err_count ++;
-                        
-                    } else {
-                        System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
-                        err_count ++;
-                        FindEndCC();
-                    }
-                    
-    } 
-    
-    public void Comentario() throws IOException{
-        symbol = input.read();
-                        
-        if(symbol == '/'){
-            String temp = input.readLine();
-            if(temp == null){
-                symbol = -1;
-            }
-        }
-        else if(symbol == '*'){
-            boolean endCom = false;
-            symbol = input.read();
-            int aux;
-            while (!endCom && symbol != -1){
-                aux = symbol;
-                symbol = input.read();
-                if( (aux == '*') && (symbol == '/') ){
-                    endCom = true;
-                }
-            }
-        }
-    }  
-     
     
 }
