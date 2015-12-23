@@ -68,38 +68,39 @@ public class AnalisadorLexico {
             pos [1]++;
             
             if(symbol != '\n' && symbol != -1)
-            token = token + (char)symbol;
+                token = token + (char)symbol;
             
                 
-                    if(symbol == '"'){
-                        CadeiaConst();
-                     
-                    } 
-                    
-                    
-                    else if(symbol == '\''){
-                        CaractereConst();
-                    
-                    }   
-                    
-                    
-                    else if(Character.isLetter(symbol)){
-                        //System.out.println((char)symbol);
-                        
-                    }
-                
-                    
-                    else if(symbol == -1){
-                        System.out.println("Numero de erros: "+err_count);
-                        eof = true;
-                        
-                    }
-                    
-                    
-                    else if(symbol == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
-                        Comentario();
-                        
-                    }
+                if(symbol == '"'){
+                    CadeiaConst();
+
+                } 
+
+
+                else if(symbol == '\''){
+                    CaractereConst();
+
+                }   
+
+
+                else if(Character.isLetter(symbol)){
+                    //Id();
+                    System.out.println("entrou");
+
+                }
+
+
+                else if(symbol == -1){
+                    System.out.println("Numero de erros: "+err_count);
+                    eof = true;
+
+                }
+
+
+                else if(symbol == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
+                    Comentario();
+
+                }
 
                 
         
@@ -109,6 +110,15 @@ public class AnalisadorLexico {
         
     }
     
+    public void Id() throws IOException{
+        
+        symbol = input.read();
+        while ( (Character.isLetterOrDigit(symbol)) && (symbol <= 126 && symbol >= 32) || symbol=='_' ){
+            token = token + (char)symbol;
+        }
+        
+        
+    }
     
     public void CadeiaConst() throws IOException{
         
@@ -116,28 +126,17 @@ public class AnalisadorLexico {
              symbol = input.read();
              //System.out.println((char)symbol);
              
-             if((symbol == '"') || (Character.isLetterOrDigit(symbol) && (symbol <= 126 && symbol >= 32))){
+             //if((symbol == '"') || (Character.isLetterOrDigit(symbol) && (symbol <= 126 && symbol >= 32))){
+             if(symbol <= 126 && symbol >= 32){ //intervalo que inclue letras, digitos e os simbolos validos
                  token = token + (char) symbol;
                  
                  if(symbol == '"'){
-                   int aux;  
-                   aux = FindEndCC();
-                   
-                   if(aux == 0){
-                       if(accept)
-                            System.out.println(token);
-                   }
-                   else{
-                       
-                       System.out.println("Erro: Cadeia constante terminada incorretamente");
-                       err_count ++;
-                   }
-                   
+                   System.out.println(token);
                    break;
                  }
              } 
              
-             else if (symbol == '\n' || symbol == -1){
+             else if (symbol == '\n' || symbol == -1){ // esse if antes do de simbolo invalido por cusada da intersecção -1 < 32
                  
                 System.out.println("Erro: Cadeia constante terminada incorretamente");
                 err_count ++;
@@ -161,46 +160,43 @@ public class AnalisadorLexico {
     
     public void CaractereConst() throws IOException{
         symbol = input.read(); // (symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)
-                    if (Character.isLetterOrDigit(symbol)) {
-                        token = token + (char) symbol;
-                        
-                        symbol = input.read();
-                    
-                        if(symbol == '\''){
-                            token = token + (char)symbol;
-                            int aux = FindEndCC();
-                            
-                            if(aux==0)
-                                System.out.println(token);
-                            else{
-                                System.out.println("Erro: Caractere constante terminado incorretamente (Expecting ; em java)");
-                                err_count ++;
-                            }
-                            
-                        }
-                        else{
-                            System.out.println("Erro: Caractere constante terminado incorretamente");
-                            
-                            String temp = input.readLine();
-                                if(temp == null){
-                                    symbol = -1;
-                                }
-                                
-                            err_count ++;
-                        }
-                        
-                    } else if (symbol == -1 || symbol == '\n'){
-                        System.out.println("Erro: Caractere constante terminado incorretamente");
-                        err_count ++;
-                    } else if(symbol == '\'') {
-                        System.out.println("Erro: Caractere constate vazio");
-                        err_count ++;
-                        
-                    } else {
-                        System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
-                        err_count ++;
-                        FindEndCC();
-                    }
+        if ( (Character.isLetterOrDigit(symbol)) && (symbol <= 126 && symbol >= 32) ) {
+            token = token + (char) symbol;
+
+            symbol = input.read();
+
+            if(symbol == '\''){
+                token = token + (char)symbol;
+                System.out.println(token);
+
+            }
+            else{
+                //System.out.println("Erro: Caractere constante mal formado");
+
+                while((symbol = input.read()) != '\n' && symbol != '\'');
+
+                if(symbol == '\'')
+                    System.out.println("Erro: Caractere constante mal formado (tamanho invalido)");
+                else
+                    System.out.println("Erro: Caractere constante mal formado (unclosed)");
+
+
+                err_count ++;
+            }
+
+        } else if (symbol == -1 || symbol == '\n'){
+            System.out.println("Erro: Caractere constante terminado incorretamente");
+            err_count ++;
+        } else if(symbol == '\'') {
+            System.out.println("Erro: Caractere constate vazio");
+            err_count ++;
+
+        } else {
+            System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
+            while((symbol = input.read()) != '\n' && symbol != '\'')//e se vier -1?
+                System.out.println(symbol);;
+            err_count ++;
+        }
                     
     } 
     
