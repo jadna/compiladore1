@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -23,11 +24,12 @@ public class AnalisadorLexico {
         private BufferedReader input;
         private BufferedWriter output;
         private int symbol = 0; 
-        private boolean eof = false;
-        private int err_count = 0;
-        private int pos [];
         private String token = "";
-        private boolean accept = true;
+        
+        ArrayList<String> linhas;
+        ArrayList<Token> tks;
+        ArrayList<Token> errs;
+        
         private final int Op [] = {33, 38, 42, 43, 45, 46, 47, 60, 61, 62, 124};
         private final int Dl [] = {';', ',', '(', ')', '{', '}', '[', ']'};
         private final String Reservadas [] = {"bool", "char", "class", "const", "else", 
@@ -39,13 +41,11 @@ public class AnalisadorLexico {
         input = new BufferedReader(new FileReader("input.txt"));
         output = new BufferedWriter(new FileWriter("output.txt"));;
         symbol = 0; 
-        eof = false;
-        err_count = 0;
-        pos = new int[2];
-        pos[0] = 1;
-        pos[1] = 0;
         token = "";
-        accept = true;
+        
+        tks = new ArrayList<>();
+        errs = new ArrayList<>();
+        linhas = CarregaCodigo(input);
         
     }
         
@@ -59,53 +59,74 @@ public class AnalisadorLexico {
     }
     
     public void Automato() throws IOException{
-         while (!eof) {
-            token = "";
+        int i = 0; //linha
+        int j = 0; //coluna
+        String line;
+         while (i<linhas.size()) {
+            line = linhas.get(i);
             
-            if(symbol != -1) // o fim do arquivo pode ser alcançado no loop anterior. O valor inicial de symbol é zero
-                symbol = input.read();
+//            if(symbol != -1) // o fim do arquivo pode ser alcançado no loop anterior. O valor inicial de symbol é zero
+//                symbol = input.read();
             
-            pos [1]++;
+//            pos [1]++;
             
-            if(symbol != '\n' && symbol != -1)
-                token = token + (char)symbol;
-            
+//            if(symbol != '\n' && symbol != -1)
+//                token = token + (char)symbol;
+            while(j<line.length()){
                 
-                if(symbol == '"'){
-                    CadeiaConst();
+//                if( !Character.isWhitespace( line.charAt(j) ) )
+//                    token = token + line.charAt(j);
+                
+                if(line.charAt(j) == '"'){
+                    j = CadeiaConst(line, i, j);
 
                 } 
 
 
-                else if(symbol == '\''){
-                    CaractereConst();
+                else if(line.charAt(j) == '\''){
+                    j = CaractereConst(line, i, j);
 
                 }   
 
 
-                else if(Character.isLetter(symbol)){
+                else if(Character.isLetter(line.charAt(j))){
                     //Id();
-                    System.out.println("entrou");
 
                 }
 
-
-                else if(symbol == -1){
-                    System.out.println("Numero de erros: "+err_count);
-                    eof = true;
+                else if(line.charAt(j) == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
+                    if(j+1<line.length()){//testar se a barra n é o ultimo caractere da linha
+                        if(line.charAt(j+1) == '/')
+                            break;
+                        else if(line.charAt(j+1) == '*'){
+                            int [] pos;
+                            pos = ComentarioBloco(i, j);
+                            i = pos[0];
+                            j = pos[1];
+                            
+                            if(i<linhas.size())
+                                line = linhas.get(i);//atualizar a linha atual
+                            else{
+                                System.out.println("deu merda nos comments");
+                                break;   
+                            }
+                            
+                            
+                        }
+                    }
+                    else;//TIRAAAAAR
+                        //Operadores
 
                 }
-
-
-                else if(symbol == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
-                    Comentario();
-
-                }
-
-                
+                j++;
+            }//chave laço dos caracteres    
+            i++;
+            j = 0;
+        } //chave laço das linhas
         
-        } 
-        
+        Print(tks);
+        System.out.println("");
+        Print(errs);
         input.close();
         
     }
@@ -120,112 +141,94 @@ public class AnalisadorLexico {
         
     }
     
-    public void CadeiaConst() throws IOException{
+    public int CadeiaConst(String line, int i, int j) throws IOException{
+         
+        String lexeme = "\"";
+        j++; 
         
-         while(true){
-             symbol = input.read();
-             //System.out.println((char)symbol);
+        while(j<line.length()){
              
              //if((symbol == '"') || (Character.isLetterOrDigit(symbol) && (symbol <= 126 && symbol >= 32))){
-             if(symbol <= 126 && symbol >= 32){ //intervalo que inclue letras, digitos e os simbolos validos
-                 token = token + (char) symbol;
-                 
-                 if(symbol == '"'){
-                   System.out.println(token);
-                   break;
+             if(line.charAt(j) <= 126 && line.charAt(j) >= 32){ //intervalo que inclue letras, digitos e os simbolos validos
+                 lexeme = lexeme + line.charAt(j);
+                 if(line.charAt(j) == '"'){
+                   tks.add(new Token(lexeme, "cadeia_constante", i+1, j+1));
+                   return j;
                  }
              } 
              
-             else if (symbol == '\n' || symbol == -1){ // esse if antes do de simbolo invalido por cusada da intersecção -1 < 32
+             else /*if( (line.charAt(j) > 126) || (line.charAt(j) < 32) )*/{
+                while(j<line.length() && line.charAt(j)!='"'){
+                    lexeme = lexeme + line.charAt(j);
+                    j++;
+                }
                  
-                System.out.println("Erro: Cadeia constante terminada incorretamente");
-                err_count ++;
-                break;
-                 
+                errs.add(new Token(lexeme, "cadeia_mal_formada", i+1, j+1)); 
+                return j;
              }
-             
-             else if( (symbol > 126) || (symbol < 32) ){
-                 
-                System.out.println("Erro: Cadeia constante mal formada (Símbolo Ínvalido)");
-                err_count ++;
-                accept = false;
-                
-                 
-             }
-             
+             j++;
          }
+            //se sair do while é pq deu erro
+            errs.add(new Token(lexeme, "cadeia_mal_formada", i+1, j+1)); 
+            
          
-        
+        return j;
     }
     
-    public void CaractereConst() throws IOException{
-        symbol = input.read(); // (symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)
-        if ( (Character.isLetterOrDigit(symbol)) && (symbol <= 126 && symbol >= 32) ) {
-            token = token + (char) symbol;
+    public int CaractereConst(String line, int i, int j) throws IOException{
+        // (symbol >= 48 && symbol <= 57) || (symbol >= 65 && symbol <= 90) || (symbol >= 97 && symbol <= 122)
+        String lexeme = "\'";
+        j++;
+        
+        if ( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ) {
+            lexeme = lexeme + line.charAt(j);
 
-            symbol = input.read();
-
-            if(symbol == '\''){
-                token = token + (char)symbol;
-                System.out.println(token);
+            j++;
+            if(j<line.length() && line.charAt(j) == '\''){
+                lexeme = lexeme + line.charAt(j);
+                tks.add(new Token(lexeme, "caracter_constante", i+1, j+1));
+                return j;
 
             }
-            else{
-                //System.out.println("Erro: Caractere constante mal formado");
 
-                while((symbol = input.read()) != '\n' && symbol != '\'');
+        } 
 
-                if(symbol == '\'')
-                    System.out.println("Erro: Caractere constante mal formado (tamanho invalido)");
-                else
-                    System.out.println("Erro: Caractere constante mal formado (unclosed)");
-
-
-                err_count ++;
-            }
-
-        } else if (symbol == -1 || symbol == '\n'){
-            System.out.println("Erro: Caractere constante terminado incorretamente");
-            err_count ++;
-        } else if(symbol == '\'') {
-            System.out.println("Erro: Caractere constate vazio");
-            err_count ++;
-
-        } else {
-            System.out.println("Erro: Caractere constate mal formada (Símbolo Ínvalido)");
-            while((symbol = input.read()) != '\n' && symbol != '\'')//e se vier -1?
-                System.out.println(symbol);;
-            err_count ++;
+        while(j<line.length() && line.charAt(j) != '\''){
+            lexeme = lexeme + line.charAt(j);
+            j++;
         }
+        
+        errs.add(new Token(lexeme, "caractere_mal_formado", i+1, j+1));
+        
+        return j;
+        
                     
     } 
     
-    public void Comentario() throws IOException{
-        symbol = input.read();
-                      
-        if(symbol == '/'){
-            String temp = input.readLine();
-            if(temp == null){
-                symbol = -1;
-            }
-            else
-                System.out.println("//"+temp);
-        }
-        else if(symbol == '*'){
-            boolean endCom = false;
-            symbol = input.read();
-            int aux;
-            System.out.print("/*");
-            while (!endCom && symbol != -1){
-                aux = symbol;
-                symbol = input.read();
-                if( (aux == '*') && (symbol == '/') ){
-                    endCom = true;
+    public int[] ComentarioBloco(int i, int j) throws IOException{
+        
+            String temp;
+            int pos [] = {i, j};
+            System.out.println("J "+j);
+            while (i<linhas.size()){
+                System.out.println("linha");
+                temp = linhas.get(i);
+                while(j<temp.length()){
+                    if( (temp.charAt(j) == '*') && (j+1<temp.length()) && (temp.charAt(j+1) == '/') ){
+                        pos[0] = i;
+                        pos[1] = j+1; //precisa incrementar J para que retorne na posição da barra que fecha comentario
+                        return pos;
+                    }
+                    j++;
                 }
-                System.out.print((char)symbol);
+                i++;
+                j = 0;
             }
-            System.out.println("");
-        }
+            
+            System.out.println("I1: "+i+" J1: "+j);
+        pos[0] = i;
+        pos[1] = j;
+        return pos;
     }  
     
     public boolean ArrayContains(int valor, int [] array) {
@@ -272,6 +275,32 @@ public class AnalisadorLexico {
  
         
         return trash;
+    }
+    
+    
+    public ArrayList<String> CarregaCodigo(BufferedReader in) throws IOException{
+        ArrayList<String> line = new ArrayList<>();
+        String str = "";
+        
+        while((str = in.readLine())!=null)
+            line.add(str);
+        
+        
+        return line;
+    }
+    
+    public void Print(ArrayList<Token> list){
+        int aux = 0;
+        Token tk;
+        
+        while(aux<list.size()){
+            
+            tk = list.get(aux);
+            System.out.println(tk.getLexeme() + " " + tk.getType() + " " + tk.getLinha());
+            aux++;
+        }
+        
+        
     }
     
 }
