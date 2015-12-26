@@ -115,20 +115,12 @@ public class AnalisadorLexico {
          while (i<linhas.size()) {
             line = linhas.get(i);
             
-//            if(symbol != -1) // o fim do arquivo pode ser alcançado no loop anterior. O valor inicial de symbol é zero
-//                symbol = input.read();
-            
-//            pos [1]++;
-            
-//            if(symbol != '\n' && symbol != -1)
-//                token = token + (char)symbol;
             while(j<line.length()){
-                
-//                if( !Character.isWhitespace( line.charAt(j) ) )
-//                    token = token + line.charAt(j);
-                
+                                
                 if(line.charAt(j) == '"'){
                     j = CadeiaConst(line, i, j);
+                    
+                    System.out.println("J: "+j);
 
                 } 
 
@@ -139,11 +131,17 @@ public class AnalisadorLexico {
                 }   
 
 
-                else if(Character.isLetter(line.charAt(j))){
+                else if( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ){
                     j = Id(line, i, j);
 
                 }
-
+                
+                
+                else if( delimitadores.contains(""+line.charAt(j)) ){
+                    Delimitador(line.charAt(j), i, j);
+                }
+                
+                
                 else if(line.charAt(j) == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
                     if(j+1<line.length()){//testar se a barra n é o ultimo caractere da linha
                         if(line.charAt(j+1) == '/')
@@ -157,7 +155,7 @@ public class AnalisadorLexico {
                             if(i<linhas.size())
                                 line = linhas.get(i);//atualizar a linha atual
                             else{
-                                System.out.println("deu merda nos comments");
+                                System.out.println("deu erro nos comments");
                                 break;   
                             }
                             
@@ -199,12 +197,12 @@ public class AnalisadorLexico {
             
             
         if(accept){
-            tks.add(new Token(lexeme, "id", i, j));
+            tks.add(new Token(lexeme, "id", i+1, j+1));
         }
         else
-            errs.add(new Token(lexeme, "id_mal_formado", i, j));
+            errs.add(new Token(lexeme, "id_mal_formado", i+1, j+1));
         
-        
+        j--;
         return j;
     }
     
@@ -256,8 +254,10 @@ public class AnalisadorLexico {
 
         } 
 
-        while(j<line.length() && line.charAt(j) != '\''){
+        while(j<line.length()){
             lexeme = lexeme + line.charAt(j);
+            if(line.charAt(j) == '\'')
+                break;
             j++;
         }
         
@@ -289,7 +289,11 @@ public class AnalisadorLexico {
         pos[0] = i;
         pos[1] = j;
         return pos;
-    }  
+    }
+    
+    public void Delimitador(char dl, int i, int j){
+        tks.add(new Token(""+dl, "delimitador", i+1, j+1));
+    }
     
     public boolean ArrayContains(String valor, String [] array) {
         for (int i = 0; i < array.length; i++) {
