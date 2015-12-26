@@ -21,31 +21,81 @@ import java.util.Arrays;
 public class AnalisadorLexico {
 
     
-        private BufferedReader input;
-        private BufferedWriter output;
-        private int symbol = 0; 
-        private String token = "";
+        private final BufferedReader input;
+        private final BufferedWriter output;
         
         ArrayList<String> linhas;
         ArrayList<Token> tks;
         ArrayList<Token> errs;
         
-        private final int Op [] = {33, 38, 42, 43, 45, 46, 47, 60, 61, 62, 124};
-        private final int Dl [] = {';', ',', '(', ')', '{', '}', '[', ']'};
-        private final String Reservadas [] = {"bool", "char", "class", "const", "else", 
-                                              "false", "float", "if", "int", "main", 
-                                              "new", "read", "return", "string", 
-                                              "true", "void", "while", "write" };
+        ArrayList<String> operadores;
+        ArrayList<String> delimitadores;
+        ArrayList<String> PalavrasReservadas;
+        
+        //private final int Op [] = {'!', '&', '*', '+', '-', '.', '/', '<', '=', '>', '|'};
+        //private final int Dl [] = {';', ',', '(', ')', '{', '}', '[', ']'};
+        
     
     public AnalisadorLexico() throws FileNotFoundException, IOException{
         input = new BufferedReader(new FileReader("input.txt"));
-        output = new BufferedWriter(new FileWriter("output.txt"));;
-        symbol = 0; 
-        token = "";
+        output = new BufferedWriter(new FileWriter("output.txt"));
         
         tks = new ArrayList<>();
         errs = new ArrayList<>();
         linhas = CarregaCodigo(input);
+        
+        operadores = new ArrayList<>();
+        delimitadores = new ArrayList<>();
+        PalavrasReservadas = new ArrayList<>();
+        
+        FillArrays();
+        
+    }
+    
+    public void FillArrays(){
+        //operadores.add("!");
+        //operadores.add("&");
+        operadores.add("*");
+        operadores.add("+");
+        operadores.add("-");
+        operadores.add(".");
+        operadores.add("/");
+        operadores.add("<");
+        operadores.add("=");
+        operadores.add(">");
+        //operadores.add("|");
+        
+        /**********************************/
+        
+        delimitadores.add(";");
+        delimitadores.add(",");
+        delimitadores.add("(");
+        delimitadores.add(")");
+        delimitadores.add("{");
+        delimitadores.add("}");
+        delimitadores.add("[");
+        delimitadores.add("]");
+        
+        /*********************************/
+        
+        PalavrasReservadas.add("bool");
+        PalavrasReservadas.add("char");
+        PalavrasReservadas.add("class");
+        PalavrasReservadas.add("const");
+        PalavrasReservadas.add("else");
+        PalavrasReservadas.add("false");
+        PalavrasReservadas.add("float");
+        PalavrasReservadas.add("if");
+        PalavrasReservadas.add("int");
+        PalavrasReservadas.add("main");
+        PalavrasReservadas.add("new");
+        PalavrasReservadas.add("read");
+        PalavrasReservadas.add("return");
+        PalavrasReservadas.add("string");
+        PalavrasReservadas.add("true");
+        PalavrasReservadas.add("void");
+        PalavrasReservadas.add("while");
+        PalavrasReservadas.add("write");
         
     }
         
@@ -90,7 +140,7 @@ public class AnalisadorLexico {
 
 
                 else if(Character.isLetter(line.charAt(j))){
-                    //Id();
+                    j = Id(line, i, j);
 
                 }
 
@@ -131,14 +181,31 @@ public class AnalisadorLexico {
         
     }
     
-    public void Id() throws IOException{
+    public int Id(String line, int i, int j) throws IOException{
         
-        symbol = input.read();
-        while ( (Character.isLetterOrDigit(symbol)) && (symbol <= 126 && symbol >= 32) || symbol=='_' ){
-            token = token + (char)symbol;
+        String lexeme = ""+line.charAt(j);
+        boolean accept = true;
+        j++;
+        
+        while( j<line.length() && !( (line.charAt(j)==' ' || delimitadores.contains(""+line.charAt(j)) || operadores.contains(""+line.charAt(j)) ) || 
+                ((j+1<line.length()) && ( (line.charAt(j)=='!' && line.charAt(j+1)=='=') || (line.charAt(j)=='&' && line.charAt(j+1)=='&') 
+                || (line.charAt(j)=='|' && line.charAt(j+1)=='|') )  )    )     ){
+            lexeme = lexeme + line.charAt(j);
+            if( !( ( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ) || line.charAt(j)=='_' ) )
+                accept = false;
+            j++;
         }
         
+            
+            
+        if(accept){
+            tks.add(new Token(lexeme, "id", i, j));
+        }
+        else
+            errs.add(new Token(lexeme, "id_mal_formado", i, j));
         
+        
+        return j;
     }
     
     public int CadeiaConst(String line, int i, int j) throws IOException{
@@ -146,29 +213,25 @@ public class AnalisadorLexico {
         String lexeme = "\"";
         j++; 
         
-        while(j<line.length()){
+        while(j<line.length() && line.charAt(j) <= 126 && line.charAt(j) >= 32){ //intervalo que inclue letras, digitos e os simbolos validos
              
-             //if((symbol == '"') || (Character.isLetterOrDigit(symbol) && (symbol <= 126 && symbol >= 32))){
-             if(line.charAt(j) <= 126 && line.charAt(j) >= 32){ //intervalo que inclue letras, digitos e os simbolos validos
-                 lexeme = lexeme + line.charAt(j);
-                 if(line.charAt(j) == '"'){
-                   tks.add(new Token(lexeme, "cadeia_constante", i+1, j+1));
-                   return j;
-                 }
-             } 
-             
-             else /*if( (line.charAt(j) > 126) || (line.charAt(j) < 32) )*/{
-                while(j<line.length() && line.charAt(j)!='"'){
-                    lexeme = lexeme + line.charAt(j);
-                    j++;
-                }
-                 
-                errs.add(new Token(lexeme, "cadeia_mal_formada", i+1, j+1)); 
-                return j;
-             }
-             j++;
+            lexeme = lexeme + line.charAt(j);
+            if(line.charAt(j) == '"'){
+              tks.add(new Token(lexeme, "cadeia_constante", i+1, j+1));
+              return j;
+            }
+            j++;
          }
+                
+            while(j<line.length() ){
+                    lexeme = lexeme + line.charAt(j);
+                    if(line.charAt(j)=='"'){
+                        break;
+                    }
+                    j++;
+            }
             //se sair do while é pq deu erro
+            
             errs.add(new Token(lexeme, "cadeia_mal_formada", i+1, j+1)); 
             
          
@@ -209,9 +272,7 @@ public class AnalisadorLexico {
         
             String temp;
             int pos [] = {i, j};
-            System.out.println("J "+j);
             while (i<linhas.size()){
-                System.out.println("linha");
                 temp = linhas.get(i);
                 while(j<temp.length()){
                     if( (temp.charAt(j) == '*') && (j+1<temp.length()) && (temp.charAt(j+1) == '/') ){
@@ -225,22 +286,48 @@ public class AnalisadorLexico {
                 j = 0;
             }
             
-            System.out.println("I1: "+i+" J1: "+j);
         pos[0] = i;
         pos[1] = j;
         return pos;
     }  
     
-    public boolean ArrayContains(int valor, int [] array) {
+    public boolean ArrayContains(String valor, String [] array) {
         for (int i = 0; i < array.length; i++) {
-            if (valor == array[i]) {
+            if (valor.equals(array[i])) {
                 return true;
             }
         }
         return false;
     }
     
-    public int FindEndCC() throws IOException{ //find the end of a constant string
+    public ArrayList<String> CarregaCodigo(BufferedReader in) throws IOException{
+        ArrayList<String> line = new ArrayList<>();
+        String str = "";
+        
+        while((str = in.readLine())!=null)
+            line.add(str);
+        
+        
+        return line;
+    }
+    
+    public void Print(ArrayList<Token> list){
+        int aux = 0;
+        Token tk;
+        
+        while(aux<list.size()){
+            
+            tk = list.get(aux);
+            System.out.println(tk.getLexeme() + " " + tk.getType() + " " + tk.getLinha());
+            aux++;
+        }
+        
+        
+    }
+    
+}
+
+/*public int FindEndCC() throws IOException{ //find the end of a constant string
         
         
         boolean end = false;
@@ -275,32 +362,4 @@ public class AnalisadorLexico {
  
         
         return trash;
-    }
-    
-    
-    public ArrayList<String> CarregaCodigo(BufferedReader in) throws IOException{
-        ArrayList<String> line = new ArrayList<>();
-        String str = "";
-        
-        while((str = in.readLine())!=null)
-            line.add(str);
-        
-        
-        return line;
-    }
-    
-    public void Print(ArrayList<Token> list){
-        int aux = 0;
-        Token tk;
-        
-        while(aux<list.size()){
-            
-            tk = list.get(aux);
-            System.out.println(tk.getLexeme() + " " + tk.getType() + " " + tk.getLinha());
-            aux++;
-        }
-        
-        
-    }
-    
-}
+    }*/
