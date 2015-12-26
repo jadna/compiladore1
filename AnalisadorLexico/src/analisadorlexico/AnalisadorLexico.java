@@ -12,7 +12,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  *
@@ -53,17 +52,22 @@ public class AnalisadorLexico {
     }
     
     public void FillArrays(){
-        //operadores.add("!");
-        //operadores.add("&");
+        operadores.add("!");
+        operadores.add("&");
         operadores.add("*");
         operadores.add("+");
+        operadores.add("++");
         operadores.add("-");
+        operadores.add("--");
         operadores.add(".");
         operadores.add("/");
         operadores.add("<");
+        operadores.add("<=");
         operadores.add("=");
+        operadores.add("==");
         operadores.add(">");
-        //operadores.add("|");
+        operadores.add(">=");
+        operadores.add("|");
         
         /**********************************/
         
@@ -120,8 +124,6 @@ public class AnalisadorLexico {
                 if(line.charAt(j) == '"'){
                     j = CadeiaConst(line, i, j);
                     
-                    System.out.println("J: "+j);
-
                 } 
 
 
@@ -142,8 +144,8 @@ public class AnalisadorLexico {
                 }
                 
                 
-                else if(line.charAt(j) == '/'){ //falta implementar escolha de qual automato par / (pode ser comentário ou operador)
-                    if(j+1<line.length()){//testar se a barra n é o ultimo caractere da linha
+                else if(line.charAt(j) == '/'){
+                    if( j+1<line.length() && ((line.charAt(j+1)=='/') || (line.charAt(j+1)=='*')) ){//testa se a barra n é o ultimo caractere da linha
                         if(line.charAt(j+1) == '/')
                             break;
                         else if(line.charAt(j+1) == '*'){
@@ -162,10 +164,22 @@ public class AnalisadorLexico {
                             
                         }
                     }
-                    else;//TIRAAAAAR
-                        //Operadores
+                    else
+                        j = Operador(line, i, j);
 
                 }
+                
+                
+                else if(line.charAt(j)=='-'){
+                    
+                }
+                
+                
+                else if(operadores.contains(""+line.charAt(j))){
+                    j = Operador(line, i, j);
+                }
+                
+                
                 j++;
             }//chave laço dos caracteres    
             i++;
@@ -185,9 +199,12 @@ public class AnalisadorLexico {
         boolean accept = true;
         j++;
         
-        while( j<line.length() && !( (line.charAt(j)==' ' || delimitadores.contains(""+line.charAt(j)) || operadores.contains(""+line.charAt(j)) ) || 
-                ((j+1<line.length()) && ( (line.charAt(j)=='!' && line.charAt(j+1)=='=') || (line.charAt(j)=='&' && line.charAt(j+1)=='&') 
-                || (line.charAt(j)=='|' && line.charAt(j+1)=='|') )  )    )     ){
+        /*((j+1<line.length()) && ( (line.charAt(j)=='!' && line.charAt(j+1)=='=') || (line.charAt(j)=='&' && line.charAt(j+1)=='&') 
+        || (line.charAt(j)=='|' && line.charAt(j+1)=='|') )  )*/
+        
+        while( j<line.length() && !( line.charAt(j)==' ' || delimitadores.contains(""+line.charAt(j)) || 
+                operadores.contains(""+line.charAt(j)) )     ){
+            
             lexeme = lexeme + line.charAt(j);
             if( !( ( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ) || line.charAt(j)=='_' ) )
                 accept = false;
@@ -295,18 +312,37 @@ public class AnalisadorLexico {
         tks.add(new Token(""+dl, "delimitador", i+1, j+1));
     }
     
-    public boolean ArrayContains(String valor, String [] array) {
-        for (int i = 0; i < array.length; i++) {
-            if (valor.equals(array[i])) {
-                return true;
+    public int Operador(String line, int i, int j){
+        String lexeme = ""+line.charAt(j);
+        
+        if((line.charAt(j)=='!') || (line.charAt(j)=='|') || (line.charAt(j)=='&')){
+            if(j+1<line.length()) {
+                if ( ((line.charAt(j)=='!') && (line.charAt(j+1)=='=')) || ((line.charAt(j)=='|') && (line.charAt(j+1)=='|')) 
+                        || ((line.charAt(j)=='&') && (line.charAt(j+1)=='&')))
+                    tks.add(new Token(lexeme+line.charAt(j+1), "operador", i+1, j+1));
+                else
+                    errs.add(new Token(lexeme+line.charAt(j+1), "operador_mal_formado", i+1, j+1));
+                j++;
             }
+            else
+                errs.add(new Token(lexeme, "operador_mal_formado", i+1, j+1));
+                
+        } 
+        
+        else if(j+1<line.length() && operadores.contains(lexeme+line.charAt(j+1))){
+            tks.add(new Token(lexeme+line.charAt(j+1), "operador", i+1, j+1));
+            j++;
         }
-        return false;
+        
+        else
+            tks.add(new Token(lexeme, "operador", i+1, j+1));
+        
+        return j;
     }
-    
+            
     public ArrayList<String> CarregaCodigo(BufferedReader in) throws IOException{
         ArrayList<String> line = new ArrayList<>();
-        String str = "";
+        String str;
         
         while((str = in.readLine())!=null)
             line.add(str);
