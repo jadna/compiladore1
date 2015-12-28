@@ -110,6 +110,7 @@ public class AnalisadorLexico {
         AnalisadorLexico AnLex = new AnalisadorLexico();
         AnLex.Automato();
         
+        
     }
     
     public void Automato() throws IOException{
@@ -133,7 +134,7 @@ public class AnalisadorLexico {
                 }   
 
 
-                else if( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ){
+                else if( (Character.isLetter(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ){
                     j = Id(line, i, j);
 
                 }
@@ -157,7 +158,6 @@ public class AnalisadorLexico {
                             if(i<linhas.size())
                                 line = linhas.get(i);//atualizar a linha atual
                             else{
-                                System.out.println("deu erro nos comments");
                                 break;   
                             }
                             
@@ -171,12 +171,65 @@ public class AnalisadorLexico {
                 
                 
                 else if(line.charAt(j)=='-'){
+                    int size = tks.size();
+                    if(j+1<line.length() && line.charAt(j+1)=='-')
+                        j = Operador(line, i, j);
+                    else if(size>0){
+                        String temp = tks.get(size-1).getLexeme();
+                        if ( ( delimitadores.contains(temp) || (operadores.contains(temp) && !temp.equals("++") && !temp.equals("--") ) ) ){
+                            boolean found = false;
+                            int i2 = i;
+                            int j2 = j+1;
+                            String line_temp = line;//somente para inicializar. Como i2 = i no inicio, é garantida a entrada no while
+                            while(i2<linhas.size() && !found){
+                                line_temp = linhas.get(i2);
+                                while(j2<line_temp.length() ){
+                                    if(!Character.isWhitespace(line_temp.charAt(j2))){
+                                        found = true;
+                                        break;
+                                    }
+                                    j2++;    
+                                }
+                                if(!found){
+                                    i2++;
+                                    j2 = 0;
+                                }
+                            }
+                        
+                            if(found){
+                                if(Character.isDigit(line_temp.charAt(j2))){
+                                    i = i2;
+                                    line = line_temp;
+                                    j = Numero(line_temp, i2, j2, true);
+                                    
+                                }
+                                else{
+                                    j = Operador(line, i, j);
+                                }
+                            }
+                            else{
+                                j = Operador(line, i, j);
+                            }
+                        
+                        }
+                        
+                        else{
+                            j = Operador(line, i, j);
+                        }
+                    }
                     
+                    else{
+                        j = Operador(line, i, j);
+                    }
                 }
                 
                 
                 else if(operadores.contains(""+line.charAt(j))){
                     j = Operador(line, i, j);
+                }
+                
+                else if(Character.isDigit(line.charAt(j))){
+                    j = Numero(line, i, j, false);
                 }
                 
                 
@@ -202,7 +255,7 @@ public class AnalisadorLexico {
         /*((j+1<line.length()) && ( (line.charAt(j)=='!' && line.charAt(j+1)=='=') || (line.charAt(j)=='&' && line.charAt(j+1)=='&') 
         || (line.charAt(j)=='|' && line.charAt(j+1)=='|') )  )*/
         
-        while( j<line.length() && !( line.charAt(j)==' ' || delimitadores.contains(""+line.charAt(j)) || 
+        while( j<line.length() && !( Character.isWhitespace(line.charAt(j)) || delimitadores.contains(""+line.charAt(j)) || 
                 operadores.contains(""+line.charAt(j)) )     ){
             
             lexeme = lexeme + line.charAt(j);
@@ -214,7 +267,10 @@ public class AnalisadorLexico {
             
             
         if(accept){
-            tks.add(new Token(lexeme, "id", i+1, j+1));
+            if(PalavrasReservadas.contains(lexeme))
+                tks.add(new Token(lexeme, "palavra_reservada", i+1, j+1));
+            else
+                tks.add(new Token(lexeme, "id", i+1, j+1));
         }
         else
             errs.add(new Token(lexeme, "id_mal_formado", i+1, j+1));
@@ -302,7 +358,10 @@ public class AnalisadorLexico {
                 i++;
                 j = 0;
             }
-            
+        
+        temp = linhas.get(pos[0]).substring(pos[1]);
+        errs.add(new Token(temp, "comentário_mal_formado", pos[0]+1, pos[1]+1));
+        
         pos[0] = i;
         pos[1] = j;
         return pos;
@@ -314,7 +373,6 @@ public class AnalisadorLexico {
     
     public int Operador(String line, int i, int j){
         String lexeme = ""+line.charAt(j);
-        
         if((line.charAt(j)=='!') || (line.charAt(j)=='|') || (line.charAt(j)=='&')){
             if(j+1<line.length()) {
                 if ( ((line.charAt(j)=='!') && (line.charAt(j+1)=='=')) || ((line.charAt(j)=='|') && (line.charAt(j+1)=='|')) 
@@ -337,6 +395,55 @@ public class AnalisadorLexico {
         else
             tks.add(new Token(lexeme, "operador", i+1, j+1));
         
+        return j;
+    }
+    
+    public int Numero(String line, int i, int j, boolean negativo){ 
+    //variavel booleana necessária para adicionar o - 
+    //(menos) ao lexema, ja que pode haver varios espaços entre este e o digito.
+    //Para não ter que varrer todos os whitespaces ate o digito novamente, o que ja foi    
+    //feito no if de -(menos) no método Automato
+        
+        String lexeme;
+        if(negativo){
+            lexeme = "-"+line.charAt(j);
+        } 
+        else
+            lexeme = ""+line.charAt(j);
+        boolean accept = true;
+        int ponto = 0;
+        j++;
+        while(j<line.length() && !( Character.isWhitespace(line.charAt(j)) || delimitadores.contains(""+line.charAt(j)) || 
+                (operadores.contains(""+line.charAt(j))  && line.charAt(j)!='.') )){
+            if(!Character.isDigit(line.charAt(j)) && line.charAt(j)!='.'){//varrer ate limitador ***********************************
+                accept = false;
+                ponto = 2; //caso seja numero mal formado, n pode mais aceitar ponto
+            }
+            else if(line.charAt(j)=='.'){
+                if(j+1<line.length() && Character.isDigit(line.charAt(j+1))){
+                    ponto++;
+                    if(ponto>1){
+                        break;
+                    }
+                }
+                else{
+                    break;
+                }
+                
+                
+            }
+            
+            
+            lexeme = lexeme + line.charAt(j);
+            j++;
+        }
+        
+        if(accept)
+            tks.add(new Token(lexeme, "numero", i+1, j+1));
+        else
+            errs.add(new Token(lexeme, "numero_mal_formado", i+1, j+1));
+        
+        j--;
         return j;
     }
             
@@ -366,40 +473,3 @@ public class AnalisadorLexico {
     }
     
 }
-
-/*public int FindEndCC() throws IOException{ //find the end of a constant string
-        
-        
-        boolean end = false;
-        int trash = 0;
-        
-        while(!end){
-            input.mark(100);
-            symbol = input.read();
-            
-            
-
-            if(ArrayContains(symbol, Op)){
-                int aux = input.read();
-                if( ( (symbol == '!') && (aux != '=') ) || ( (symbol=='&') && (aux != '&') ) || 
-                        (symbol=='|') && (aux != '|') ){
-                    
-                    trash++;
-                    
-                }
-                else 
-                    end = true;
-            } 
-            else if ( ((ArrayContains(symbol, Dl)) || symbol=='\n' || symbol == -1 || Character.isWhitespace(symbol)) ){
-                end = true;
-
-            }
-            else
-                trash++;
-        }
-       
-        input.reset();
- 
-        
-        return trash;
-    }*/
