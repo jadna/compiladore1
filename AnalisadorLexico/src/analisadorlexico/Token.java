@@ -9,6 +9,8 @@ package analisadorlexico;
  *
  * @author doug
  */
+
+
 public class Token {
     
     private String lexeme;

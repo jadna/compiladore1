@@ -1,2 +1,12 @@
-- - 
-2.2 . 3 . -a . 5.-4 . -7	
+public void Print(BufferedWriter out, ArrayList<Token> list) throws IOException{
+        int aux = 0;
+        Token tk;
+        
+        while(aux<list.size()){
+            
+            tk = list.get(aux);
+            out.write(tk.getLexeme() + " " + tk.getType() + " " + tk.getLinha());
+            out.newLine();
+            //System.out.println(tk.getLexeme() + " " + tk.getType() + " " + tk.getLinha());
+            aux++;
+        }
