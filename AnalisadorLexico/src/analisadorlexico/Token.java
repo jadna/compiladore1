@@ -6,8 +6,12 @@
 package analisadorlexico;
 
 /**
- *
- * @author doug
+ * UEFS 
+ * EXA869 - MI - Processadores de Linguagem de Programação
+ * Problema 01 - Analisador Léxico 
+ * @author Douglas Almeida Carneiro - 10211167
+ * @author Jadna Almeida da Cruz - 091111780
+ * @version 1.0
  */
 
 
