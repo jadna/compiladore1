@@ -183,9 +183,7 @@ public class AnalisadorLexico {
                                 line = linhas.get(i);//atualizar a linha atual
                             else{
                                 break;   
-                            }
-                            
-                            
+                            }   
                         }
                     }
                     else
@@ -199,56 +197,55 @@ public class AnalisadorLexico {
                 seguinte é um digito. Essa situação define um número negtivo, portanto o automato de numeros é chamado. Nas outras 
                 ocasiões, é chamado o automato de operador*/
                 else if(line.charAt(j)=='-'){
-                    int size = tks.size();
                     if(j+1<line.length() && line.charAt(j+1)=='-')
                         j = Operador(line, i, j);
-                    else if(size>0){
-                        String temp = tks.get(size-1).getLexeme();
-                        if ( ( delimitadores.contains(temp) || (operadores.contains(temp) && !temp.equals("++") && !temp.equals("--") ) ) ){
-                            boolean found = false;
-                            int i2 = i;
-                            int j2 = j+1;
-                            String line_temp = line;//somente para inicializar. Como i2 = i no inicio, é garantida a entrada no while
-                            while(i2<linhas.size() && !found){
-                                line_temp = linhas.get(i2);
-                                while(j2<line_temp.length() ){
-                                    if(!Character.isWhitespace(line_temp.charAt(j2))){
-                                        found = true;
-                                        break;
+                    else{
+                        int size = tks.size();
+                        boolean found = false;
+                        int i2 = i;
+                        int j2 = j+1;
+                        String line_temp = line;//somente para inicializar. Como i2 = i no inicio, é garantida a entrada no while
+                        while(i2<linhas.size() && !found){//achar o proximo caractere!=whitespace
+                            line_temp = linhas.get(i2);
+                            while(j2<line_temp.length() ){
+                                if(!Character.isWhitespace(line_temp.charAt(j2))){
+                                    found = true;
+                                    break;
+                                }
+                                j2++;    
+                            }
+                            if(!found){
+                                i2++;
+                                j2 = 0;
+                            }
+                        }
+
+                        if(found){
+                            if(Character.isDigit(line_temp.charAt(j2))){
+                                if(size > 0){
+                                    String temp = tks.get(size-1).getLexeme();
+                                    if( delimitadores.contains(temp) || (operadores.contains(temp) && !temp.equals("++") && !temp.equals("--") ) ){
+                                        i = i2;
+                                        line = line_temp;
+                                        j = Numero(line_temp, i2, j2, true);
                                     }
-                                    j2++;    
+                                    else {
+                                        j = Operador(line, i, j);
+                                    }
                                 }
-                                if(!found){
-                                    i2++;
-                                    j2 = 0;
-                                }
-                            }
-                        
-                            if(found){
-                                if(Character.isDigit(line_temp.charAt(j2))){
-                                    i = i2;
-                                    line = line_temp;
+                                else {
                                     j = Numero(line_temp, i2, j2, true);
-                                    
-                                }
-                                else{
-                                    j = Operador(line, i, j);
                                 }
                             }
-                            else{
+                            else {
                                 j = Operador(line, i, j);
                             }
-                        
                         }
-                        
                         else{
                             j = Operador(line, i, j);
                         }
                     }
                     
-                    else{
-                        j = Operador(line, i, j);
-                    }
                 }
                 
                 //Operador tem que ser testado após o if do - (menos) e da /
@@ -294,7 +291,7 @@ public class AnalisadorLexico {
         j++;
         
         while( j<line.length() && !( Character.isWhitespace(line.charAt(j)) || delimitadores.contains(""+line.charAt(j)) || 
-                operadores.contains(""+line.charAt(j)) )     ){
+                operadores.contains(""+line.charAt(j)) || line.charAt(j) == '"' || line.charAt(j) == '\'')     ){
             
             lexeme = lexeme + line.charAt(j);
             if( !( ( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ) || line.charAt(j)=='_' ) )
@@ -356,7 +353,7 @@ public class AnalisadorLexico {
         String lexeme = "\'";
         j++;
         
-        if ( (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ) {
+        if ( j<line.length() && (Character.isLetterOrDigit(line.charAt(j))) && (line.charAt(j) <= 126 && line.charAt(j) >= 32) ) {
             lexeme = lexeme + line.charAt(j);
 
             j++;
@@ -465,7 +462,7 @@ public class AnalisadorLexico {
         int ponto = 0;
         j++;
         while(j<line.length() && !( Character.isWhitespace(line.charAt(j)) || delimitadores.contains(""+line.charAt(j)) || 
-                (operadores.contains(""+line.charAt(j))  && line.charAt(j)!='.') )){
+                (operadores.contains(""+line.charAt(j))  && line.charAt(j)!='.') || line.charAt(j) == '"' || line.charAt(j) == '\'' )){
             if(!Character.isDigit(line.charAt(j)) && line.charAt(j)!='.'){//varrer ate limitador ***********************************
                 accept = false;
                 ponto = 2; //caso seja numero mal formado, não pode mais aceitar ponto
